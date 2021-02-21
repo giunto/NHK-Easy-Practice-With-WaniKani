@@ -14,6 +14,8 @@ var apiToken = "put-your-api-token-here";
 // Wait until page finishes loading before trying to overwrite content on the
 // NHK Easy website
 window.addEventListener("load", function () {
+  console.debug("1. The page loaded. Yay.");
+  alert("1. The page loaded. Yay.");
   handleUpdatingPage();
 });
 
@@ -23,12 +25,21 @@ window.addEventListener("load", function () {
  * furigana.
  */
 async function handleUpdatingPage() {
+  console.debug("2. Time to grab some assignments.");
+  alert("2. Time to grab some assignments.");
+
   // Get the known vocab and kanji for the user
   const knownVocab = new Set();
   await getAssignments(knownVocab);
 
+  console.debug("3. Assignments Done. Let's find some ruby.");
+  alert("3. Assignments Done. Let's find some ruby.");
+
   // Update the webpage to hide the furigana for the passed in list of vocab and kanji.
   findRuby(knownVocab);
+
+  console.debug("4. Yay, we're done.");
+  alert("4. Yay, we're done.");
 }
 
 /**
@@ -109,6 +120,7 @@ async function getAssignments(knownVocab) {
   // Iterate all the pages of the returned request. An assignments request is limited to 500
   // items meaning we will probably have multiple pages of requests to retrieve.
   let nextPage = apiUrlPath;
+  let debugIterator = 0;
   do {
     const apiEndpoint = new Request(decodeURIComponent(nextPage), {
       method: "GET",
@@ -116,10 +128,14 @@ async function getAssignments(knownVocab) {
     });
 
     // Get the assignments
-    const response = await fetch(apiEndpoint, {});
+    const response = await fetch(apiEndpoint, {}).catch(function (error) {
+      console.log(error);
+    });
     const jsonData = await response.json();
 
     nextPage = jsonData.pages.next_url;
+
+    console.debug("2.1 Grabbing some assignments part " + debugIterator);
 
     // Get the subject IDs (IDs for vocab and kanji) out of the response. These will be
     // used to request the actual vocab and kanji words from WK.
@@ -129,6 +145,8 @@ async function getAssignments(knownVocab) {
     // Take the subject IDs and get vocab words out of them. This function will append
     // the additional vocab words found to the passed in set.
     await lookupVocab(subjectIds, knownVocab);
+
+    debugIterator++;
   } while (nextPage);
 }
 
@@ -161,6 +179,7 @@ async function lookupVocab(subjectIds, vocabSet) {
   });
 
   let nextPage = apiUrlPath;
+  let debugIterator = 0;
   do {
     const apiEndpoint = new Request(decodeURIComponent(nextPage), {
       method: "GET",
@@ -168,14 +187,19 @@ async function lookupVocab(subjectIds, vocabSet) {
     });
 
     // Get the subjects from WK
-    const response = await fetch(apiEndpoint, {});
+    const response = await fetch(apiEndpoint, {}).catch(function (error) {
+      console.log(error);
+    });
     const jsonData = await response.json();
 
     nextPage = jsonData.pages.next_url;
 
+    console.debug("2.2 Grabbing some vocab part " + debugIterator);
+
     // Parse the vocab words out of the JSON and put them into my set of
     // known vocab.
     addVocabFromSubjects(jsonData, vocabSet);
+    debugIterator++;
   } while (nextPage);
 }
 
